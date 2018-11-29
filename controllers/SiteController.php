@@ -2,6 +2,8 @@
 
 namespace app\controllers;
 
+use app\components\AWS;
+use app\models\AwsSource;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -124,5 +126,28 @@ class SiteController extends Controller
     public function actionAbout()
     {
         return $this->render('about');
+    }
+
+    public function actionBuckets(){
+        $awsSource = AwsSource::find()->all();
+        $items = [];
+        foreach ($awsSource as $item){
+            $items[$item['name']] = $item['root'];
+        }
+        if (Yii::$app->request->post()!= null){
+            $aws = new AWS();
+            $bucket = AwsSource::findOne(['name'=>Yii::$app->request->post('bucket')]);
+            $btnGetContent = Yii::$app->request->post('getContent');
+            if(isset($btnGetContent)){
+                $content = $aws->getContent($bucket['root'], $bucket['name']);
+                return $this->render('buckets', ['content'=>$content, 'items'=>$items]);
+            }else{
+                $aws->setContent($bucket['root'], $bucket['name'], Yii::$app->request->post('content'));
+                $content = $aws->getContent($bucket['root'], $bucket['name']);
+                return $this->render('buckets', ['content'=>$content, 'items'=>$items]);
+            }
+
+        }
+        return $this->render('buckets', ['items'=>$items]);
     }
 }
